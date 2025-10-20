@@ -1,14 +1,20 @@
+# ...existing code...
+import os
 import tkinter as tk
 from tkinter import messagebox
 import pandas as pd
 from data_loader import load_data, save_data
+
+# 指定数据文件路径（相对于 src 上一级的 data 目录）
+DATA_CSV = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "devtest.csv"))
 
 class DevTestLabeler:
     def __init__(self, master):
         self.master = master
         self.master.title("DevTest Labeler")
         
-        self.data = load_data('D:\Dataset\devtest-labeler\data\devtest.csv')
+        # 传入文件路径
+        self.data = load_data(DATA_CSV)
         self.current_index = 0
         
         self.query_label = tk.Label(master, text="")
@@ -38,10 +44,12 @@ class DevTestLabeler:
         if self.current_index < len(self.data):
             self.data.at[self.current_index, 'label'] = label
             self.current_index += 1
-            save_data(self.data,'D:\Dataset\devtest-labeler\data\devtest.csv')
+            # 保存时也传入路径
+            save_data(self.data, DATA_CSV)
             self.update_display()
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = DevTestLabeler(root)
     root.mainloop()
+# ...existing code...
