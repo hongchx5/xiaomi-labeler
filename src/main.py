@@ -1,7 +1,7 @@
-# ...existing code...
 import os
 import tkinter as tk
 from tkinter import messagebox
+import tkinter.font as tkfont
 import pandas as pd
 from data_loader import load_data, save_data
 
@@ -12,6 +12,28 @@ class DevTestLabeler:
     def __init__(self, master):
         self.master = master
         self.master.title("DevTest Labeler")
+
+        # 字体默认配置（可调）
+        self.font_size = 12
+
+        # 选择一个可用的中文友好字体（优先列表）
+        def _choose_font_family():
+            preferred = [
+                "Microsoft YaHei", "微软雅黑",    # Windows 常用
+                "PingFang SC", "苹方", "Heiti SC", # macOS 常用
+                "Noto Sans CJK SC", "Noto Sans CJK", # 常见跨平台
+                "SimHei", "SimSun", "Arial"       # 备选
+            ]
+            available = set(tkfont.families())
+            for name in preferred:
+                if name in available:
+                    return name
+            # fallback
+            return "Arial"
+
+        fam = _choose_font_family()
+        self.title_font = tkfont.Font(family=fam, size=self.font_size, weight="bold")
+        self.content_font = tkfont.Font(family=fam, size=self.font_size)
         
         # 加载数据（并确保有 label 列）
         self.data = load_data(DATA_CSV)
@@ -74,12 +96,23 @@ class DevTestLabeler:
         self.canvas.bind_all("<Button-4>", _on_mousewheel)
         self.canvas.bind_all("<Button-5>", _on_mousewheel)
 
+        # 字体调节控件（缩放条 + +/- 按钮）
+        font_ctrl_frame = tk.Frame(master)
+        font_ctrl_frame.pack(padx=10, pady=(0,5), fill="x")
+
+        tk.Button(font_ctrl_frame, text="-", width=3, command=lambda: self.change_font(-1)).pack(side="left", padx=2)
+        self.font_scale = tk.Scale(font_ctrl_frame, from_=8, to=32, orient="horizontal", showvalue=True,
+                                   command=self.on_font_scale, length=220)
+        self.font_scale.set(self.font_size)
+        self.font_scale.pack(side="left", padx=5)
+        tk.Button(font_ctrl_frame, text="+", width=3, command=lambda: self.change_font(1)).pack(side="left", padx=2)
+
         # 字段标签（可调 wraplength）
         self.field_labels = {}
         wrap_len = 1000
         for f in self.fields:
-            tk.Label(self.inner_frame, text=f + ":", font=("Arial", 9, "bold")).pack(anchor="w")
-            lbl = tk.Label(self.inner_frame, text="", wraplength=wrap_len, justify="left")
+            tk.Label(self.inner_frame, text=f + ":", font=self.title_font).pack(anchor="w")
+            lbl = tk.Label(self.inner_frame, text="", wraplength=wrap_len, justify="left", font=self.content_font)
             lbl.pack(anchor="w", padx=10, pady=2)
             self.field_labels[f] = lbl
 
@@ -97,6 +130,27 @@ class DevTestLabeler:
         
         self.update_display()
     
+    def on_font_scale(self, val):
+        try:
+            size = int(float(val))
+        except Exception:
+            return
+        self.set_font_size(size)
+
+    def change_font(self, delta):
+        new = max(8, min(32, self.font_size + delta))
+        self.font_scale.set(new)
+        self.set_font_size(new)
+
+    def set_font_size(self, size):
+        self.font_size = size
+        self.title_font.configure(size=size)
+        self.content_font.configure(size=size)
+        # 根据字体大小按比例调整 wraplength（可根据需要调节比例）
+        wrap_len = int(1000 * (12 / max(8, size)))
+        for lbl in self.field_labels.values():
+            lbl.configure(wraplength=wrap_len)
+
     def update_display(self):
         total = len(self.data)
         if self.current_index < total:
